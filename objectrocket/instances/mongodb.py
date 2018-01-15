@@ -134,11 +134,12 @@ class MongodbInstance(bases.BaseInstance, bases.Extensible, bases.InstanceAclsIn
                     futures.wait(fs, timeout=None, return_when=futures.ALL_COMPLETED)
                 stats_next_second = self._rollup_shard_stats_to_instance_stats(
                     {shard.name: future.result() for (shard, future) in zip(shards, fs)})
-                self._new_relic_stats = self._compile_new_relic_stats(stats_this_second, stats_next_second)
+                self._new_relic_stats = self._compile_new_relic_stats(
+                    stats_this_second, stats_next_second)
             else:
                 # fetch stats like we did before (by hitting new_relic_stats API resource)
                 response = requests.get('{}{}'.format(self._url,
-                                        'new-relic-stats'),
+                                                      'new-relic-stats'),
                                         **self._instances._default_request_kwargs)
                 self._new_relic_stats = json.loads(response.content).get(
                     'data') if response.status_code == 200 else {}
@@ -154,7 +155,8 @@ class MongodbInstance(bases.BaseInstance, bases.Extensible, bases.InstanceAclsIn
         opcounters_per_node = []
 
         # aggregate replication_lag
-        instance_stats['replication_lag'] = max(map(lambda s: s['replication_lag'], shard_stats.values()))
+        instance_stats['replication_lag'] = max(
+            map(lambda s: s['replication_lag'], shard_stats.values()))
 
         aggregate_server_statistics = {}
         for shard_name, stats in shard_stats.items():
@@ -163,7 +165,8 @@ class MongodbInstance(bases.BaseInstance, bases.Extensible, bases.InstanceAclsIn
                     aggregate_server_statistics[statistic_key] = util.sum_values(aggregate_server_statistics[statistic_key],
                                                                                  stats.get('shard_stats')[statistic_key])
                 else:
-                    aggregate_server_statistics[statistic_key] = stats.get('shard_stats')[statistic_key]
+                    aggregate_server_statistics[statistic_key] = stats.get('shard_stats')[
+                        statistic_key]
 
             # aggregate per_node_stats into opcounters_per_node
             opcounters_per_node.append({shard_name: {member: node_stats['opcounters']
@@ -195,7 +198,8 @@ class MongodbInstance(bases.BaseInstance, bases.Extensible, bases.InstanceAclsIn
             first_doc = stats_this_second['aggregate_server_statistics'][subdoc]
             second_doc = stats_next_second['aggregate_server_statistics'][subdoc]
             keys = set(first_doc.keys()) | set(second_doc.keys())
-            server_statistics_per_second[subdoc] = {key: int(second_doc[key]) - int(first_doc[key]) for key in keys}
+            server_statistics_per_second[subdoc] = {
+                key: int(second_doc[key]) - int(first_doc[key]) for key in keys}
         for node1, node2 in zip(stats_this_second['opcounters_per_node'], stats_next_second['opcounters_per_node']):
             node_opcounters_per_second = {}
             for repl, members in node2.items():
@@ -203,7 +207,8 @@ class MongodbInstance(bases.BaseInstance, bases.Extensible, bases.InstanceAclsIn
                 for member, ops in members.items():
                     node_opcounters_per_second[repl][member] = {}
                     for op, count in ops.items():
-                        node_opcounters_per_second[repl][member][op] = count - node1[repl][member][op]
+                        node_opcounters_per_second[repl][member][op] = count - \
+                            node1[repl][member][op]
             opcounters_per_node_per_second.append(node_opcounters_per_second)
 
         return {'opcounters_per_node_per_second': opcounters_per_node_per_second,
@@ -332,9 +337,11 @@ class Shard(bases.Extensible):
         """
         :return: get stats for this mongodb shard
         """
-        return requests.get(self._stats_url, params={'include_stats': True},
-                            headers={'X-Auth-Token': self._client.auth._token}
-                            ).json()['data']['stats']
+        json_data = requests.get(self._stats_url, params={'include_stats': True},
+                                 headers={'X-Auth-Token': self._client.auth._token}
+                                 ).json()
+        logger.info("json_data: {}".format(json_data))
+        return json_data['data']['stats']
 
     @property
     def _stats_url(self):
