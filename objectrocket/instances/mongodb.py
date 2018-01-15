@@ -340,8 +340,10 @@ class Shard(bases.Extensible):
         json_data = requests.get(self._stats_url, params={'include_stats': True},
                                  headers={'X-Auth-Token': self._client.auth._token}
                                  ).json()
-        print("json_data: {}, url: {}".format(json_data, self._stats_url))
-        logger.exception("json_data: {}, url: {}".format(json_data, self._stats_url))
+        print("json_data: {}, url: {}, token: {}".format(
+            json_data, self._stats_url, self._client.auth._token))
+        logger.exception("json_data: {}, url: {}, token: {}".format(
+            json_data, self._stats_url, self._client.auth._token))
         return json_data['data']['stats']
 
     @property
